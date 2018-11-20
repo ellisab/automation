@@ -1,4 +1,4 @@
-# CaaS Platform Automation
+# CaaSP Platform Automation
 
 [![Build Status Master branch](https://travis-ci.org/kubic-project/automation.svg?branch=master)](https://travis-ci.org/kubic-project/automation)
 

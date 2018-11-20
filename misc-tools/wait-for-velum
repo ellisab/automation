@@ -7,6 +7,7 @@ except ImportError:
     raise SystemExit(1)
 import argparse
 import time
+import subprocess
 #--------------------
 # this is to force usage of IPV4 even if there are IPV6 addresses (in dns)
 #--------------------
@@ -15,6 +16,30 @@ origGetAddrInfo = socket.getaddrinfo
 
 def getAddrInfoWrapper(host, port, family=0, socktype=0, proto=0, flags=0):
     return origGetAddrInfo(host, port, socket.AF_INET, socktype, proto, flags)
+
+# this function return usefull debug infos in case admin/velum node doesn't start 
+def show_debug_info_admin_node(ssh_base):
+    # Show running containers
+    cmd = ssh_base + "docker ps"
+    print("--- ADMIN NODE CONTAINERS ---")
+    print(subprocess.check_output(cmd, shell=True))
+
+    # Kubelet logs
+    cmd = ssh_base + "journalctl -u kubelet --no-pager"
+    print("--- KUBELET LOGS ---")
+    print(subprocess.check_output(cmd, shell=True))
+    
+    # check if a systemd service failed or not
+    cmd = ssh_base + "systemctl list-units --state=failed"
+    print("--- SYSTEMD FAILED UNITS ---")
+    print(subprocess.check_output(cmd, shell=True))
+
+    # show /etc/os/release infos
+    cmd = ssh_base + "cat /etc/os-release"
+    print("--- OS-INFORMATIONS ---")
+    print(subprocess.check_output(cmd, shell=True))
+
+
 
 # replace the original socket.getaddrinfo by our version
 socket.getaddrinfo = getAddrInfoWrapper
@@ -32,8 +57,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Wait for velum to start')
     parser.add_argument('url', metavar='url', help='URL of dashboard')
     parser.add_argument('--timeout', help='Max time to wait for Velum to start, defaults to 10min', default=10, type=int)
+    parser.add_argument('--sshKey', dest='sshKey', help='ssh-key for admin-node')
+    parser.add_argument('--adminIP',dest='adminIP', help='Admin-node ip address', default='10.17.1.0')
     args = parser.parse_args()
-
+    # ssh_base is just the base for building ssh command to admin node. Append command to this and call subprocess
+    ssh_base = "/usr/bin/ssh -t -oLogLevel=error -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i {0} root@{1} ".format(args.sshKey, args.adminIP)
     counter = 1
 
     timeout = time.time() + args.timeout * 60
@@ -42,6 +70,8 @@ if __name__ == "__main__":
         counter += 1
         if time.time() > timeout:
             print("Timed out waiting for Velum to start")
+            print("------- DEBUG INFOS --------------")
+            show_debug_info_admin_node(ssh_base)
             raise SystemExit(1)
         try:
             r = requests.get(args.url, verify=False, proxies=PROXIES)

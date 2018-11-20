@@ -254,14 +254,22 @@ done
 
 ################################################################
 
-if [[ $(basename $IMAGE) =~ [Kk]ubic ]]; then
-  VELUM_IMAGE=channel://kubic
-  DIST=kubic
-  KUBIC_MANIFEST_FLAG="--kubic"
-# check if internal network is reachable and fail early
-elif [[ $(basename $IMAGE) =~ [Dd]evel_15 ]]; then
-  SLE15_MANIFEST_FLAG="--sle15"
-elif [[ -n "$RUN_BUILD" ]] && ! ping -q -c1 download.suse.de 2>&1 >/dev/null; then
+case $(basename $IMAGE) in
+    [Kk]ubic)
+        VELUM_IMAGE=channel://kubic
+        DIST=kubic
+        KUBIC_MANIFEST_FLAG="--kubic"
+        SLE15_PATCH="no"
+        ;;
+    # The SLE15_MANIFEST_FLAG flag controls, whether to patch the manifests to
+    # use registry images or container-feeder.
+    *)
+        warn "Will patch manifests to use registry"
+        SLE15_MANIFEST_FLAG="--sle15"
+        ;;
+esac
+
+if [[ -n "$RUN_BUILD" ]] && ! ping -q -c1 download.suse.de 2>&1 >/dev/null; then
   cat <<EOF
 Internal network not reachable!
   use $0 --image channel://kubic
@@ -372,8 +380,7 @@ build() {
   [ -n "$EXTRA_REPO" ] && $DIR/../misc-tools/inject_repo.sh $EXTRA_REPO
 
   log "Waiting for Velum to start - this may take a while"
-  PYTHONUNBUFFERED=1 "$DIR/../misc-tools/wait-for-velum" --timeout 30 https://$(jq -r '.dashboardExternalHost' "$ENVIRONMENT")
-
+  PYTHONUNBUFFERED=1 "$DIR/../misc-tools/wait-for-velum" --timeout 30 --sshKey "$(jq -r '.sshKey' "$ENVIRONMENT")" https://$(jq -r '.dashboardExternalHost' "$ENVIRONMENT") 
   log "CaaS Platform Ready for bootstrap"
 }
 

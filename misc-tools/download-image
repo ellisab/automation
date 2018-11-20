@@ -18,8 +18,7 @@ from HTMLParser import HTMLParser
 #  "regexp" -> <hyp_type> -> [<channel>|default] -> image_filename_regexp
 regexp = {
     "kvm": {
-        "default": r'.*KVM.*x86_64-.*\.qcow2$',
-        "sle15": r'.*CaaSP-Stack.*kvm.*\.qcow2$',
+        "default": r'.*CaaSP-Stack.*kvm.*\.qcow2$',
         "kubic": r'.*x86_64-.*Stack-hardware-x86_64.*\.qcow2$'
     },
     "docker": {
@@ -273,9 +272,12 @@ def get_channel_url(args):
     if args.type == "docker":
         base_url += 'images_container_base'
     elif args.type in ["kvm", "openstack", "vmware"]:
-        base_url += 'images'
-        if args.url == "channel://devel_15":
-            base_url += '-sle15'
+        if any(chan in args.url for chan in ["release",
+                                             "staging_a",
+                                             "staging_b"]):
+            base_url += 'images'
+        else:
+            base_url += 'images-sle15'
     elif args.type == "iso":
         base_url += 'images/iso'
     else:
