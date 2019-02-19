@@ -32,8 +32,8 @@ USAGE:
   * worker_size - SES Worker OpenStack Flavour
   * mons - Number of SES Mon nodes
   * osds - Number of SES OSD nodes
-  * regcodeSLES - sles reg code
-  * regcodeSES - ses reg code
+  * regcode_SLES - sles reg code
+  * regcode_SES - ses reg code
   * identifier - appends to ssh key names and security group definitions so that there are no colissions when using one namespace
 
   3. Run ses-openstack with following action:
